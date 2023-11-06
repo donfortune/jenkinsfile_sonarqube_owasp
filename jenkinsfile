@@ -1,0 +1,61 @@
+ pipeline {
+    agent any
+    
+    tools {
+        maven 'maven'
+       
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/jaiswaladi246/Ekart.git'
+            }
+        }
+        
+        stage('Compile using maven') {
+            steps {
+                sh "mvn clean compile"   
+            }
+        }
+        
+        stage('Sonarqube analysis') {
+            steps {
+                // Use the 'sonarqube' tool to execute the scanner
+                script {
+                    def scannerHome = tool name: 'sonarqube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    sh """$scannerHome/bin/sonar-scanner \
+                        -Dsonar.projectKey=jenkins_test \
+                        -Dsonar.host.url=http://54.146.93.15:9000/ \
+                        -Dsonar.login=squ_235f076212104e333a195d1b30beeb763ab38f21 \
+                        -Dsonar.projectName=shopping-cart \
+                        -Dsonar.java.binaries=.
+                    """
+                }
+            }
+        }
+        stage('dependy check scan') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ ', odcInstallation: 'DP'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.yml'
+            }
+        }
+        
+        stage('build app') {
+            steps {
+                sh "mvn clean package -DskipTests=true"
+            }
+        }
+        
+        stage('build and push docker image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'DockerhubCred', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                    sh "docker build -t shopping-cart -f docker/Dockerfile ."
+                    sh "docker login -u $USERNAME -p $PASSWORD"
+                    sh "docker tag shopping-cart donfortune1/shopping-cart:latest"
+                    sh "docker push donfortune1/shopping-cart:latest"
+                }
+            }
+        }
+    }
+}
