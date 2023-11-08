@@ -26,8 +26,8 @@
                     def scannerHome = tool name: 'sonarqube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                     sh """$scannerHome/bin/sonar-scanner \
                         -Dsonar.projectKey=jenkins_test \
-                        -Dsonar.host.url=http://54.146.93.15:9000/ \
-                        -Dsonar.login=squ_235f076212104e333a195d1b30beeb763ab38f21 \
+                        -Dsonar.host.url="sonarqube server address" \
+                        -Dsonar.login="sonarqube token" \
                         -Dsonar.projectName=shopping-cart \
                         -Dsonar.java.binaries=.
                     """
